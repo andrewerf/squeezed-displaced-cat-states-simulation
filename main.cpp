@@ -36,7 +36,7 @@ float fid(float alpha, Complex lamb, Complex xi)
     auto N = M * exp( sqr(alpha)*(-1.f + 0.5f*k - b*b) - 0.5f*sqr(abs(lamb)) + 0.5f*k*sqr(lamb));
     auto val = N*( exp(2.f*ab*sqr(alpha)) * sinh(alpha*(-r + lamb*k + 2.f*ab*lamb + Complex(0.f, c)))
             + exp(-2.f*ab*sqr(alpha)) * sinh(alpha*(-r + lamb*k - 2.f*ab*lamb + Complex(0.f, c)) ) );
-    return abs(val) * abs(val);
+    return sqr(abs(val)) / ( 1 - exp(-4.f * sqr(abs(alpha))) );
 }
 
 
