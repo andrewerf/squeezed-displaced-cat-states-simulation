@@ -1,12 +1,15 @@
 //
 // Created by Andrey Aralov on 2/24/25.
 //
-#include <vector>
 #include <complex>
 #include <iostream>
+#include <format>
+#include <print>
 
 #include <tbb/parallel_reduce.h>
 #include <tbb/parallel_for.h>
+
+#include <boost/program_options.hpp>
 
 using Complex = std::complex<float>;
 
@@ -40,11 +43,38 @@ float fid(float alpha, Complex lamb, Complex xi)
 }
 
 
-int main()
+namespace po = boost::program_options;
+
+int main( int ac, char* av[] )
 {
-    float min = -0.5f;
-    float max = 0.5f;
-    int steps = 400;
+    float min = -1.f;
+    float max = 1.f;
+    int steps = 200;
+    float alpha = 2;
+
+    try{
+        po::options_description desc("");
+        desc.add_options()
+            ( "steps", po::value( &steps )->default_value( steps ), "Number of steps in the grid (along one axis)" )
+            ( "min", po::value( &min )->default_value( min ), "Minimum value of grid" )
+            ( "max", po::value( &max )->default_value( max ), "Maximum value of grid" )
+            ( "alpha", po::value( &alpha )->default_value( alpha ), "Alpha" )
+        ;
+        po::variables_map vm;
+        po::store(po::parse_command_line(ac, av, desc), vm);
+        po::notify(vm);
+
+        if ( vm.count("help") )
+        {
+            std::cout << desc << "\n";
+            return 0;
+        }
+    }
+    catch ( std::exception&e )
+    {
+        std::cerr << e.what() << '\n';
+        exit( -1 );
+    }
     auto from_step = [&] ( int step ) -> float
     {
         return min + (float)step * (max - min) / (float)steps;
@@ -73,7 +103,7 @@ int main()
                     {
                         Complex lamb( from_step( step_x1 ), from_step( step_y1 ) );
                         Complex xi( from_step( step_x2 ), from_step( step_y2 ) );
-                        if ( auto val = fid( 2, lamb, xi ); val > running.maxVal )
+                        if ( auto val = fid( alpha, lamb, xi ); val >= running.maxVal )
                         {
                             running.maxVal = val;
                             running.maxLamb = lamb;
@@ -87,5 +117,5 @@ int main()
         return running;
     }, &S::operator| );
 
-    std::cout << res.maxVal << '\n' << res.maxLamb << ' ' << res.maxXi;
+    std::print( "{:.4f}|{:.4f} {:.4f}|{:.4f} {:.4f}\n", res.maxVal, res.maxLamb.real(), res.maxLamb.imag(), res.maxXi.real(), res.maxXi.imag() );
 }
